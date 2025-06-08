@@ -88,6 +88,8 @@ type Spider struct {
 
 
 func main() {
+	spider.SetLogLevel(spider.LogLevelDebug)
+	spider.SetLogFormatter(spider.LogJSONFormatter)
 	conn, err := dbus.SystemBus()
 	if err != nil {
 		fmt.Printf("Failed to get system bus: %s\n", err)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/godbus/dbus/v5"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -17,7 +18,10 @@ const (
 	knownNetworkMethodForget = knownNetworkInterface + ".Forget"
 )
 
-var KnownNetworkError = errors.New("Network has been forgotten")
+var (
+	knLogger *log.Entry
+	KnownNetworkError = errors.New("Network has been forgotten")
+)
 
 type KnownNetworker interface {
 	GetPath() dbus.ObjectPath
@@ -44,6 +48,11 @@ type KnownNetwork struct {
 }
 
 func NewKnownNetwork(conn *dbus.Conn, path dbus.ObjectPath) (*KnownNetwork, error) {
+	log.SetReportCaller(true)
+	knLogger = log.WithFields(log.Fields{
+		"type": "KnownNetwork",
+		"path": path,
+	})
 	obj := conn.Object(IwdService, path)
 	kn := &KnownNetwork{
 		conn: conn,
@@ -51,63 +60,76 @@ func NewKnownNetwork(conn *dbus.Conn, path dbus.ObjectPath) (*KnownNetwork, erro
 		path: path,
 		forgotten: false,
 	}
-
 	if variant, err := kn.obj.GetProperty(knownNetworkPropertyName); err != nil {
-		fmt.Printf("Failed to get name property: %s\n", err)
-		// log err
+		knLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'name'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&kn.name); err2 != nil {
-			fmt.Printf("Failed to store name property: %s\n", err2)
-			// log err
+			knLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'name'")
 			return nil, err2
 		}
+		knLogger.Debugf("Name = %s", kn.name)
 	}
 	if variant, err := kn.obj.GetProperty(knownNetworkPropertyType); err != nil {
-		fmt.Printf("Failed to get type property: %s\n", err)
-		// log err
+		knLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'type'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&kn.netType); err2 != nil {
-			fmt.Printf("Failed to store type property: %s\n", err2)
-			// log err
+			knLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'type'")
 			return nil, err2
 		}
+		knLogger.Debugf("Type = %s", kn.netType)
 	}
 	if variant, err := kn.obj.GetProperty(knownNetworkPropertyHidden); err != nil {
-		fmt.Printf("Failed to get hidden property: %s\n", err)
-		// log err
+		knLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'hidden'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&kn.hidden); err2 != nil {
-			fmt.Printf("Failed to store hidden property: %s\n", err2)
-			// log err
+			knLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'hidden'")
 			return nil, err2
 		}
+		knLogger.Debugf("Hidden = %b", kn.hidden)
 	}
 	if variant, err := kn.obj.GetProperty(knownNetworkPropertyLastConnectedTime); err != nil {
-		fmt.Printf("Failed to get last connected time property: %s\n", err)
-		// log err
+		knLogger.WithFields(log.Fields{
+			"err": err,
+		}).Info("Failed to get optional property 'last connected time'")
 		kn.lastConnectedTime = nil
 	} else {
 		if err2 := variant.Store(&kn.lastConnectedTime); err2 != nil {
-			fmt.Printf("Failed to store last connected time property: %s\n", err2)
-			// log err
+			knLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'last connected time'")
 			return nil, err2
 		}
+		knLogger.Debugf("Last Connected Time = %s", kn.lastConnectedTime)
 	}
 	if variant, err := kn.obj.GetProperty(knownNetworkPropertyAutoConnect); err != nil {
-		fmt.Printf("Failed to get auto connect property: %s\n", err)
-		// log err
+		knLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'auto connect'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&kn.autoConnect); err2 != nil {
-			fmt.Printf("Failed to store auto connect property: %s\n", err2)
-			// log err
+			knLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'auto connect'")
 			return nil, err2
 		}
+		knLogger.Debugf("Auto Connect = %b", kn.autoConnect)
 	}
-
 	return kn, nil
 }
 
@@ -121,8 +143,12 @@ func (kn *KnownNetwork) GetInterface() string {
 
 func (kn *KnownNetwork) GetName() (string, error) {
 	if kn.forgotten {
+		knLogger.WithFields(log.Fields{
+			"err": KnownNetworkError,
+		}).Errorf("Network %s has been forgotten", kn.name)
 		return "", KnownNetworkError
 	}
+	knLogger.Debugf("GetName %s", kn.name)
 	return kn.name, nil
 }
 
@@ -130,39 +156,62 @@ func (kn *KnownNetwork) GetType() (string, error) {
 	if kn.forgotten {
 		return "", KnownNetworkError
 	}
+	knLogger.Debugf("GetType %s", kn.netType)
 	return kn.netType, nil
 }
 
 func (kn *KnownNetwork) GetHidden() (bool, error) {
 	if kn.forgotten {
+		knLogger.WithFields(log.Fields{
+			"err": KnownNetworkError,
+		}).Errorf("Network %s has been forgotten", kn.name)
 		return false, KnownNetworkError
 	}
+	knLogger.Debugf("GetHidden %b", kn.hidden)
 	return kn.hidden, nil
 }
 
 func (kn *KnownNetwork) GetLastConnectedTime() (*string, error) {
 	if kn.forgotten {
+		knLogger.WithFields(log.Fields{
+			"err": KnownNetworkError,
+		}).Errorf("Network %s has been forgotten", kn.name)
 		return nil, KnownNetworkError
+	}
+	if kn.lastConnectedTime != nil {
+		knLogger.Debugf("GetLastConnectedTime %s", *kn.lastConnectedTime)
+	} else {
+		knLogger.Debugf("No LastConnectedTime")
 	}
 	return kn.lastConnectedTime, nil
 }
 
 func (kn *KnownNetwork) GetAutoConnect() (bool, error) {
 	if kn.forgotten {
+		knLogger.WithFields(log.Fields{
+			"err": KnownNetworkError,
+		}).Errorf("Network %s has been forgotten", kn.name)
 		return false, KnownNetworkError
 	}
+	knLogger.Debugf("GetAutoConnect %b", kn.autoConnect)
 	return kn.autoConnect, nil
 }
 
 func (kn *KnownNetwork) SetAutoConnect(autoConnect bool) error {
 	if kn.forgotten {
+		knLogger.WithFields(log.Fields{
+			"err": KnownNetworkError,
+		}).Errorf("Network %s has been forgotten", kn.name)
 		return KnownNetworkError
 	}
 	obj := kn.conn.Object(IwdService, kn.path)
 	if err := obj.SetProperty(knownNetworkPropertyAutoConnect, dbus.MakeVariant(autoConnect)); err != nil {
-		// log err
+		knLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to set property 'auto connect' to %b", autoConnect)
 		return err
 	} else {
+		knLogger.Debugf("SetAutoConnect %b", autoConnect)
 		kn.autoConnect = autoConnect
 		return nil
 	}
@@ -180,11 +229,18 @@ func (kn *KnownNetwork) String() string {
 
 func (kn *KnownNetwork) Forget() error {
 	if kn.forgotten {
+		knLogger.WithFields(log.Fields{
+			"err": KnownNetworkError,
+		}).Errorf("Network %s has been forgotten", kn.name)
 		return KnownNetworkError
 	}
 	if err := kn.obj.Call(knownNetworkMethodForget, 0).Err; err != nil {
+		knLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to call Forget")
 		return err
 	}
+	knLogger.Debugf("Forgotten")
 	kn.forgotten = true
 	return nil
 }

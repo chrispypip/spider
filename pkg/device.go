@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/godbus/dbus/v5"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -14,6 +15,10 @@ const (
 	devicePropertyPowered = deviceInterface + ".Powered"
 	devicePropertyAdapter = deviceInterface + ".Adapter"
 	devicePropertyMode = deviceInterface + ".Mode"
+)
+
+var (
+	deviceLogger *log.Entry
 )
 
 type Devicer interface {
@@ -41,76 +46,96 @@ type Device struct {
 }
 
 func NewDevice(conn *dbus.Conn, path dbus.ObjectPath) (*Device, error) {
+	log.SetReportCaller(true)
+	deviceLogger = log.WithFields(log.Fields{
+		"type": "Device",
+		"path": path,
+	})
 	obj := conn.Object(IwdService, path)
 	d := &Device{
 		conn: conn,
 		path: path,
 		obj: obj,
 	}
-
 	if variant, err := d.obj.GetProperty(devicePropertyName); err != nil {
-		fmt.Printf("Failed to get name property: %s\n", err)
-		// log err
+		deviceLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'name'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&d.name); err2 != nil {
-			fmt.Printf("Failed to store name property: %s\n", err2)
-			// log err
+			deviceLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'name'")
 			return nil, err2
 		}
+		deviceLogger.Debugf("Name = %s", d.name)
 	}
 	if variant, err := d.obj.GetProperty(devicePropertyAddress); err != nil {
-		fmt.Printf("Failed to get address property: %s\n", err)
-		// log error
+		deviceLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'address'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&d.address); err2 != nil {
-			fmt.Printf("Failed to store address property: %s\n", err2)
-			// log err
+			deviceLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'address'")
 			return nil, err2
 		}
+		deviceLogger.Debugf("Address = %s", d.address)
 	}
 	if variant, err := d.obj.GetProperty(devicePropertyPowered); err != nil {
-		fmt.Printf("Failed to get powered property: %s\n", err)
-		// log error
+		deviceLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'powered'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&d.powered); err2 != nil {
-			fmt.Printf("Failed to store powered property: %s\n", err2)
-			// log err
+			deviceLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'powered'")
 			return nil, err2
 		}
+		deviceLogger.Debugf("Powered = %b", d.powered)
 	}
 	if variant, err := d.obj.GetProperty(devicePropertyAdapter); err != nil {
-		fmt.Printf("Failed to get adapter property: %s\n", err)
-		// log error
+		deviceLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'adapter'")
 		return nil, err
 	} else {
 		var path dbus.ObjectPath
 		if err2 := variant.Store(&path); err2 != nil {
-			fmt.Printf("Failed to store adapter path property: %s\n", err2)
-			// log err
+			deviceLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'adapter'")
 			return nil, err2
 		}
 		if adapter, err2 := NewAdapter(d.conn, path); err2 != nil {
-			fmt.Printf("Failed to create new adapter for device: %s\n", err2)
+			deviceLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to created to Adapter from property 'adapter'")
 			return nil, err2
 		} else {
+			deviceLogger.Debugf("Created new Adapter from property 'adapter': %s", adapter)
 			d.adapter = *adapter
 		}
 	}
 	if variant, err := d.obj.GetProperty(devicePropertyMode); err != nil {
-		fmt.Printf("Failed to get mode property: %s\n", err)
-		// log error
+		deviceLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'mode'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&d.mode); err2 != nil {
-			fmt.Printf("Failed to store mode property: %s\n", err2)
-			// log err
+			deviceLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'mode'")
 			return nil, err2
 		}
+		deviceLogger.Debugf("Mode = %s", d.mode)
 	}
-
 	return d, nil
 }
 
@@ -149,9 +174,12 @@ func (d *Device) GetMode() string {
 func (d *Device) SetPowered(powered bool) error {
 	obj := d.conn.Object(IwdService, d.path)
 	if err := obj.SetProperty(devicePropertyPowered, dbus.MakeVariant(powered)); err != nil {
-		// log err
+		deviceLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to set property 'powered' to %b", powered)
 		return err
 	} else {
+		deviceLogger.Debugf("SetPowered %b", powered)
 		d.powered = powered
 		return nil
 	}
@@ -160,13 +188,19 @@ func (d *Device) SetPowered(powered bool) error {
 func (d *Device) SetMode(mode string) error {
 	supportedModes := d.GetSupportedModes()
 	if !slices.Contains(supportedModes, mode) {
-		return fmt.Errorf("Invalid mode %s. Valid modes are %v", mode, supportedModes)
+		err := fmt.Errorf("Invalid mode %s. Valid modes are %v", mode, supportedModes)
+		deviceLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Invalide mode %s; valide modes are %v", mode, supportedModes)
+		return err
 	}
-
 	if err := d.obj.SetProperty(devicePropertyMode, dbus.MakeVariant(mode)); err != nil {
-		// log err
+		deviceLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to set property 'mode' to %s", mode)
 		return err
 	} else {
+		deviceLogger.Debugf("SetMode %s", mode)
 		d.mode = mode
 		return nil
 	}

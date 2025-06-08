@@ -22,6 +22,10 @@ const (
 	accessPointMethodGetOrderedNetworks = accessPointInterface + ".GetOrderedNetworks"
 )
 
+var (
+	apLogger *log.Entry
+)
+
 type AccessPointer interface {
 	GetPath() dbus.ObjectPath
 	GetInterface() string
@@ -57,6 +61,10 @@ type AccessPoint struct {
 
 func NewAccessPoint(conn *dbus.Conn, path dbus.ObjectPath) (*AccessPoint, error) {
 	log.SetReportCaller(true)
+	apLogger = log.WithFields(log.Fields{
+		"type": "AccessPoint",
+		"path": path,
+	})
 	obj := conn.Object(IwdService, path)
 	ap := &AccessPoint{
 		conn: conn,
@@ -64,94 +72,74 @@ func NewAccessPoint(conn *dbus.Conn, path dbus.ObjectPath) (*AccessPoint, error)
 		path: path,
 	}
 	if variant, err := ap.obj.GetProperty(accessPointPropertyStarted); err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": path,
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Error("Failed to get property 'started'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&ap.started); err2 != nil {
-			log.WithFields(log.Fields{
-				"type": "AccessPoint",
-				"path": path,
+			apLogger.WithFields(log.Fields{
 				"err": err2,
 			}).Error("Failed to store proptery 'started'")
 			return nil, err2
 		}
-		log.Debugf("AccessPoint: Started = %b", ap.started)
+		apLogger.Debugf("Started = %b", ap.started)
 	}
 	if variant, err := ap.obj.GetProperty(accessPointPropertyName); err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": path,
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Info("Failed to get optional property 'name'")
 		ap.name = nil
 	} else {
 		if err2 := variant.Store(&ap.name); err2 != nil {
-			log.WithFields(log.Fields{
-				"type": "AccessPoint",
-				"path": path,
+			apLogger.WithFields(log.Fields{
 				"err": err2,
 			}).Errorf("Failed to store property 'name'")
 			return nil, err2
 		}
-		log.Debugf("AccessPoint: Name = %s", *ap.name)
+		apLogger.Debugf("Name = %s", *ap.name)
 	}
 	if variant, err := ap.obj.GetProperty(accessPointPropertyFrequency); err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": path,
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Info("Failed to get optional property 'frequency'")
 		ap.frequency = nil
 	} else {
 		if err2 := variant.Store(&ap.frequency); err2 != nil {
-			log.WithFields(log.Fields{
-				"type": "AccessPoint",
-				"path": path,
+			apLogger.WithFields(log.Fields{
 				"err": err,
 			}).Error("Failed to store property 'frequency'")
 			return nil, err2
 		}
-		log.Debugf("AccessPoint: Frequency = %d", *ap.frequency)
+		apLogger.Debugf("Frequency = %d", *ap.frequency)
 	}
 	if variant, err := ap.obj.GetProperty(accessPointPropertyPairwiseCiphers); err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": path,
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Info("Failed to get optional property 'pairwise ciphers'")
 		ap.pairwiseCiphers = nil
 	} else {
 		if err2 := variant.Store(&ap.pairwiseCiphers); err2 != nil {
-			log.WithFields(log.Fields{
-				"type": "AccessPoint",
-				"path": path,
+			apLogger.WithFields(log.Fields{
 				"err": err,
 			}).Error("Failed to store property 'pairwise cipher'")
 			return nil, err2
 		}
-		log.Debugf("AccessPoint: Pairwise Ciphers = %v", *ap.pairwiseCiphers)
+		apLogger.Debugf("Pairwise Ciphers = %v", *ap.pairwiseCiphers)
 	}
 	if variant, err := ap.obj.GetProperty(accessPointPropertyGroupCipher); err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": path,
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Info("Failed to get optional property 'group cipher'")
 		ap.groupCipher = nil
 	} else {
 		if err2 := variant.Store(&ap.groupCipher); err2 != nil {
-			log.WithFields(log.Fields{
-				"type": "AccessPoint",
-				"path": path,
+			apLogger.WithFields(log.Fields{
 				"err": err2,
 			}).Error("Failed to store property 'group cipher'")
 			return nil, err2
 		}
-		log.Debugf("AccessPoint: Group Cipher = %s", *ap.groupCipher)
+		apLogger.Debugf("Group Cipher = %s", *ap.groupCipher)
 	}
 	return ap, nil
 }
@@ -215,65 +203,55 @@ func (ap *AccessPoint) String() string {
 
 func (ap *AccessPoint) Start(ssid, psk string) error {
 	if err := ap.obj.Call(accessPointMethodStart, 0, ssid, psk).Err; err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": ap.GetPath(),
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Error("Failed to start Access Point")
 		return err
 	}
-	log.Debugf("AccessPoint: Started")
+	apLogger.Debugf("Started SSID = %s", ssid)
 	ap.started = true
 	return nil
 }
 
 func (ap *AccessPoint) Stop() error {
 	if err := ap.obj.Call(accessPointMethodStop, 0).Err; err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": ap.GetPath(),
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Error("Failed to stop Access Point")
 		return err
 	}
-	log.Debugf("AccessPoint: Stopped")
+	apLogger.Debug("Stopped")
 	ap.started = false
 	return nil
 }
 
 func (ap *AccessPoint) StartProfile(ssid string) error {
 	if err := ap.obj.Call(accessPointMethodStartProfile, 0).Err; err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": ap.GetPath(),
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Errorf("Failed to start Access Point profile: SSID %s", ssid)
 		return err
 	}
-	log.Debugf("AccessPoint: Profile Started")
+	apLogger.Debugf("Profile Started SSID = %s", ssid)
 	ap.started = true
 	return nil
 }
 
 func (ap *AccessPoint) Scan() error {
 	if err := ap.obj.Call(accessPointMethodScan, 0).Err; err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": ap.GetPath(),
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Error("Failed to start scan")
 		return err
 	}
-	log.Debugf("AccessPoint: Scanning")
+	apLogger.Debug("Scanning")
 	return nil
 }
 
 func (ap * AccessPoint) GetOrderedNetworks() ([]*AccessPointOrderedNetwork, error) {
 	var objects [][]dbus.Variant
 	if err := ap.obj.Call(accessPointMethodGetOrderedNetworks, 0).Store(&objects); err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": ap.GetPath(),
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Error("Failed to get ordered networks")
 		return nil, err
@@ -289,32 +267,27 @@ func (ap * AccessPoint) GetOrderedNetworks() ([]*AccessPointOrderedNetwork, erro
 			SignalStrength: signalStrength,
 			Security: security,
 		})
-		log.Debugf("AccessPoint: Ordered Network %d = %v", i, *orderedNetworks[i])
+		apLogger.Debugf("Ordered Network %d = %v", i, *orderedNetworks[i])
 	}
-	log.Debugf("AccessPoint: Found %d ordered networks", objLen)
+	apLogger.Debugf("Found %d ordered networks", objLen)
 	return orderedNetworks, nil
 }
 
 func (ap *AccessPoint) GetScanning() (bool, error) {
 	var scanning bool
-	apPath := ap.GetPath()
 	if variant, err := ap.obj.GetProperty(accessPointPropertyScanning); err != nil {
-		log.WithFields(log.Fields{
-			"type": "AccessPoint",
-			"path": apPath,
+		apLogger.WithFields(log.Fields{
 			"err": err,
 		}).Error("Failed to get property 'scanning'")
 		return false, err
 	} else {
 		if err2 := variant.Store(&scanning); err2 != nil {
-			log.WithFields(log.Fields{
-				"type": "AccessPoint",
-				"path": apPath,
+			apLogger.WithFields(log.Fields{
 				"err": err2,
 			}).Error("Failed to store property 'scanning'")
 			return false, err2
 		}
 	}
-	log.Debugf("AccessPoint: Scanning = %b", scanning)
+	apLogger.Debugf("Scanning = %b", scanning)
 	return scanning, nil
 }

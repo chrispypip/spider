@@ -4,11 +4,16 @@ import (
 	"fmt"
 
 	"github.com/godbus/dbus/v5"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
 	basicServiceSetInterface = "net.connman.iwd.BasicServiceSet"
 	basicServiceSetPropertyAddress = basicServiceSetInterface + ".Address"
+)
+
+var (
+	bssLogger *log.Entry
 )
 
 type BasicServiceSetter interface {
@@ -25,25 +30,31 @@ type BasicServiceSet struct {
 }
 
 func NewBasicServiceSet(conn *dbus.Conn, path dbus.ObjectPath) (*BasicServiceSet, error) {
+	log.SetReportCaller(true)
+	bssLogger = log.WithFields(log.Fields{
+		"type": "BasicServiceSet",
+		"path": path,
+	})
 	obj := conn.Object(IwdService, path)
 	bss := &BasicServiceSet{
 		conn: conn,
 		obj: obj,
 		path: path,
 	}
-
 	if variant, err := bss.obj.GetProperty(basicServiceSetPropertyAddress); err != nil {
-		fmt.Printf("Failed to get address property: %s\n", err)
-		// log err
+		bssLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'address'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&bss.address); err2 != nil {
-			fmt.Printf("Failed to store address property: %s\n", err2)
-			// log err
+			bssLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'address'")
 			return nil, err2
 		}
+		bssLogger.Debugf("Address = %s", bss.address)
 	}
-
 	return bss, nil
 }
 

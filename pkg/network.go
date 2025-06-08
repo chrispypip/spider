@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/godbus/dbus/v5"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -15,6 +16,10 @@ const (
 	networkPropertyKnownNetwork = networkInterface + ".KnownNetwork"
 	networkPropertyExtendedServiceSet = networkInterface + ".ExtendedServiceSet"
 	networkMethodConnect = networkInterface + ".Connect"
+)
+
+var (
+	networkLogger *log.Entry
 )
 
 type Networker interface {
@@ -42,105 +47,132 @@ type Network struct {
 }
 
 func NewNetwork(conn *dbus.Conn, path dbus.ObjectPath) (*Network, error) {
+	log.SetReportCaller(true)
+	networkLogger = log.WithFields(log.Fields{
+		"type": "Network",
+		"path": path,
+	})
 	obj := conn.Object(IwdService, path)
 	n := &Network{
 		conn: conn,
 		obj: obj,
 		path: path,
 	}
-
 	if variant, err := n.obj.GetProperty(networkPropertyName); err != nil {
-		fmt.Printf("Failed to get name property: %s\n", err)
-		// log err
+		networkLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'name'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&n.name); err2 != nil {
-			fmt.Printf("Failed to store name property: %s\n", err2)
-			// log err
+			networkLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'name'")
 			return nil, err2
 		}
+		networkLogger.Debugf("Name = %s", n.name)
 	}
 	if variant, err := n.obj.GetProperty(networkPropertyConnected); err != nil {
-		fmt.Printf("Failed to get connected property: %s\n", err)
-		// log err
+		networkLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'connected'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&n.connected); err2 != nil {
-			fmt.Printf("Failed to store connected property: %s\n", err2)
-			// log err
+			networkLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'connected'")
 			return nil, err2
 		}
+		networkLogger.Debugf("Connected = %b", n.connected)
 	}
 	if variant, err := n.obj.GetProperty(networkPropertyDevice); err != nil {
-		fmt.Printf("Failed to get device property: %s\n", err)
-		// log err
+		networkLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'device'")
 		return nil, err
 	} else {
 		var path dbus.ObjectPath
 		if err2 := variant.Store(&path); err2 != nil {
-			fmt.Printf("Failed to store device path property: %s\n", err2)
-			// log err
+			networkLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'device'")
 			return nil, err2
 		}
 		if device, err2 := NewDevice(n.conn, path); err2 != nil {
-			fmt.Printf("Failed to create new device for network: %s\n", err2)
+			networkLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to create new Device from property 'device'")
 			return nil, err2
 		} else {
+			networkLogger.Debugf("Created new Device from property 'device': %s", device)
 			n.device = *device
 		}
 	}
 	if variant, err := n.obj.GetProperty(networkPropertyType); err != nil {
-		fmt.Printf("Failed to get type property: %s\n", err)
-		// log err
+		networkLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to get property 'type'")
 		return nil, err
 	} else {
 		if err2 := variant.Store(&n.netType); err2 != nil {
-			fmt.Printf("Failed to store type property: %s\n", err2)
-			// log err
+			networkLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'type'")
 			return nil, err2
 		}
+		networkLogger.Debugf("Type = %s", n.netType)
 	}
 	if variant, err := n.obj.GetProperty(networkPropertyKnownNetwork); err != nil {
-		fmt.Printf("Failed to get known network property: %s\n", err)
-		// log err
+		networkLogger.WithFields(log.Fields{
+			"err": err,
+		}).Info("Failed to get optional property 'known network'")
 		n.knownNetwork = nil
 	} else {
 		var path dbus.ObjectPath
 		if err2 := variant.Store(&path); err2 != nil {
-			fmt.Printf("Failed to store known network path property: %s\n", err2)
-			// log err
+			networkLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'known network'")
 			return nil, err2
 		}
 		if knownNetwork, err2 := NewKnownNetwork(conn, path); err2 != nil {
-			fmt.Printf("Failed to create new known network for network: %s\n", err2)
+			networkLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to create new Known Network from property 'known network'")
 			return nil, err2
 		} else {
+			networkLogger.Debugf("Created new Known Network from property 'known network': %s", knownNetwork)
 			n.knownNetwork = knownNetwork
 		}
 	}
 	if variant, err := n.obj.GetProperty(networkPropertyExtendedServiceSet); err != nil {
-		fmt.Printf("Failed to get extended service set property: %s\n", err)
-		// log err
+		networkLogger.WithFields(log.Fields{
+			"err": err,
+		}).Info("Failed to get optional property 'extended service set'")
 		n.extendedServiceSet = nil
 	} else {
 		var paths []dbus.ObjectPath
 		var ess = make([]BasicServiceSet, 0)
 		if err2 := variant.Store(&paths); err2 != nil {
-			fmt.Printf("Failed to store extended service set paths property: %s\n", err2)
-			// log err
+			networkLogger.WithFields(log.Fields{
+				"err": err2,
+			}).Error("Failed to store property 'extended service set'")
 			return nil, err2
 		}
-		for _, path := range(paths) {
+		for i, path := range(paths) {
 			if bss, err2 := NewBasicServiceSet(n.conn, path); err2 != nil {
-				fmt.Printf("Failed to create new basic service set for network: %s\n", err2)
+				networkLogger.WithFields(log.Fields{
+					"err": err2,
+				}).Error("Failed to create new Basic Service Set from property 'extended service set'")
 				return nil, err2
 			} else {
+				networkLogger.Debugf("Created new Basic Service Set %d from property 'extended service set': %s", i, bss)
 				ess = append(ess, *bss)
 			}
 		}
 		n.extendedServiceSet = &ess
 	}
-
 	return n, nil
 }
 
@@ -190,8 +222,12 @@ func (n *Network) String() string {
 
 func (n *Network) Connect() error {
 	if err := n.obj.Call(networkMethodConnect, 0).Err; err != nil {
+		networkLogger.WithFields(log.Fields{
+			"err": err,
+		}).Error("Failed to call Connect")
 		return err
 	}
+	networkLogger.Debugf("Connected")
 	n.connected = true
 	return nil
 }

@@ -116,15 +116,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	agent := &Agent{
-		conn: conn,
-		path: "/test/agent/path",
-	}
+	agent := spider.NewSimpleAgent(conn)
 	err = conn.Export(agent, agent.GetPath(), "net.connman.iwd.Agent")
 	if err != nil {
 		fmt.Printf("Failed to export agent: %s\n", err)
 		os.Exit(1)
 	}
+	agent.SetPassphrase("froggyfishes343")
 
 	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
 	objectManager := conn.Object(spider.IwdService, "/")

@@ -88,8 +88,12 @@ type Spider struct {
 
 
 func main() {
-	spider.SetLogLevel(spider.LogLevelDebug)
+	spider.SetLogLevel(spider.LogLevelError)
 	spider.SetLogFormatter(spider.LogJSONFormatter)
+	if _, err := spider.AddLogFile("/root/mylog.txt", 0777); err != nil {
+		fmt.Printf("Failed to add log file: %s\n", err)
+		os.Exit(1)
+	}
 	conn, err := dbus.SystemBus()
 	if err != nil {
 		fmt.Printf("Failed to get system bus: %s\n", err)

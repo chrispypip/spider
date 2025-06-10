@@ -1,7 +1,15 @@
 package spider
 
 import (
+	"errors"
+	"fmt"
+	"io"
+	"log/syslog"
+	"os"
+
 	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/writer"
+	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
 )
 
 type LogLevel uint8
@@ -64,18 +72,58 @@ func GetLogLevel() LogLevel {
 	return LogLevelInfo
 }
 
-func SetLogFormatter(logFormatter LogFormatter) {
+func SetLogOutput(out io.Writer) {
+	log.SetOutput(out)
+}
+
+func AddLogFile(path string, perm os.FileMode) (*os.File, error) {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, perm)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open log file %s: %s", path, err)
+	}
+	log.AddHook(&writer.Hook{
+		Writer: file,
+		LogLevels: []log.Level{
+			log.TraceLevel,
+			log.DebugLevel,
+			log.InfoLevel,
+			log.WarnLevel,
+			log.ErrorLevel,
+			log.FatalLevel,
+			log.PanicLevel,
+		},
+	})
+	return file, nil
+}
+
+func RemoveLogFile(file *os.File) {
+	file.Close()
+}
+
+func AddLogToSyslog(network, raddr string, priority syslog.Priority, tag string) error {
+	hook, err := lSyslog.NewSyslogHook(network, raddr, priority, tag)
+	if err != nil {
+		return fmt.Errorf("Failed to open syslog: %s", err)
+	}
+	log.AddHook(hook)
+	return nil
+}
+
+func SetLogFormatter(logFormatter LogFormatter) error {
 	switch logFormatter {
 	case LogTextFormatter:
 		log.SetFormatter(&log.TextFormatter{})
+		return nil
 	case LogTTYFormatter:
 		log.SetFormatter(&log.TextFormatter{
 			DisableColors: true,
 			FullTimestamp: true,
 		})
+		return nil
 	case LogJSONFormatter:
 		log.SetFormatter(&log.JSONFormatter{})
+		return nil
 	default:
-		panic("Invalid LogFormatter specified")
+		return errors.New("Invalid LogFormatter specified; valid values are: LogTextFormatter, LogTTYFormatter, LogJSONFormatter")
 	}
 }

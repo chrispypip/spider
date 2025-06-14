@@ -27,8 +27,8 @@ const (
 type LogFormatter uint8
 
 const (
-	LogTextFormatter = iota
-	LogTTYFormatter
+	LogTTYFormatter = iota
+	LogTextFormatter
 	LogJSONFormatter
 )
 
@@ -109,19 +109,25 @@ func AddLogToSyslog(network, raddr string, priority syslog.Priority, tag string)
 	return nil
 }
 
-func SetLogFormatter(logFormatter LogFormatter) error {
+func SetLogFormatter(logFormatter LogFormatter, enableColors, enableTimestamp, enablePrettyPrint bool) error {
 	switch logFormatter {
-	case LogTextFormatter:
-		log.SetFormatter(&log.TextFormatter{})
-		return nil
 	case LogTTYFormatter:
 		log.SetFormatter(&log.TextFormatter{
 			DisableColors: true,
 			FullTimestamp: true,
 		})
 		return nil
+	case LogTextFormatter:
+		log.SetFormatter(&log.TextFormatter{
+			DisableColors: !enableColors,
+			DisableTimestamp: !enableTimestamp,
+		})
+		return nil
 	case LogJSONFormatter:
-		log.SetFormatter(&log.JSONFormatter{})
+		log.SetFormatter(&log.JSONFormatter{
+			DisableTimestamp: !enableTimestamp,
+			PrettyPrint: enablePrettyPrint,
+		})
 		return nil
 	default:
 		return errors.New("Invalid LogFormatter specified; valid values are: LogTextFormatter, LogTTYFormatter, LogJSONFormatter")

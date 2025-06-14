@@ -197,13 +197,28 @@ func (s *Station) String() string {
 }
 
 func (s *Station) Scan() error {
-	if err := s.obj.Call(stationMethodScan, 0).Err; err != nil {
+	var scanning bool
+	var err error
+	if scanning, err = s.GetScanning(); err != nil {
 		stationLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to start scan")
+		}).Error("Failed to get station scanning state")
 		return err
 	}
-	stationLogger.Debug("Scanning")
+
+	if !scanning {
+		if err := s.obj.Call(stationMethodScan, 0).Err; err != nil {
+			stationLogger.WithFields(log.Fields{
+				"err": err,
+			}).Error("Failed to start scan")
+			return err
+		}
+		stationLogger.Debug("Scanning")
+		return nil
+	} else {
+		stationLogger.Info("Station is already scanning")
+		return nil
+	}
 	return nil
 }
 

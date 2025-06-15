@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	SimpleAgentPath = "/spider/simpleagent"
-	SimpleAgentUser = "User"
-	SimpleAgentPassphrase = "Passphrase"
+	SimpleAgentPath                 = "/spider/simpleagent"
+	SimpleAgentUser                 = "User"
+	SimpleAgentPassphrase           = "Passphrase"
 	SimpleAgentPrivateKeyPassphrase = "Passphrase"
 )
 
@@ -17,10 +17,10 @@ var (
 )
 
 type Agent struct {
-	conn *dbus.Conn
-	path dbus.ObjectPath
-	user string
-	passphrase string
+	conn                 *dbus.Conn
+	path                 dbus.ObjectPath
+	user                 string
+	passphrase           string
 	privateKeyPassphrase string
 }
 
@@ -31,10 +31,10 @@ func NewSimpleAgent(conn *dbus.Conn) *Agent {
 		"path": SimpleAgentPath,
 	})
 	return &Agent{
-		conn: conn,
-		path: SimpleAgentPath,
-		user: SimpleAgentUser,
-		passphrase: SimpleAgentPassphrase,
+		conn:                 conn,
+		path:                 SimpleAgentPath,
+		user:                 SimpleAgentUser,
+		passphrase:           SimpleAgentPassphrase,
 		privateKeyPassphrase: SimpleAgentPrivateKeyPassphrase,
 	}
 }

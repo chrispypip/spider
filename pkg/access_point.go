@@ -8,17 +8,17 @@ import (
 )
 
 const (
-	accessPointInterface = "net.connman.iwd.AccessPoint"
-	accessPointPropertyStarted = accessPointInterface + ".Started"
-	accessPointPropertyName = accessPointInterface + ".Name"
-	accessPointPropertyScanning = accessPointInterface + ".Scanning"
-	accessPointPropertyFrequency = accessPointInterface + ".Frequency"
-	accessPointPropertyPairwiseCiphers = accessPointInterface + ".PairwiseCiphers"
-	accessPointPropertyGroupCipher = accessPointInterface + ".GroupCipher"
-	accessPointMethodStart = accessPointInterface + ".Start"
-	accessPointMethodStop = accessPointInterface + ".Stop"
-	accessPointMethodStartProfile = accessPointInterface + ".StartProfile"
-	accessPointMethodScan = accessPointInterface + ".Scan"
+	accessPointInterface                = "net.connman.iwd.AccessPoint"
+	accessPointPropertyStarted          = accessPointInterface + ".Started"
+	accessPointPropertyName             = accessPointInterface + ".Name"
+	accessPointPropertyScanning         = accessPointInterface + ".Scanning"
+	accessPointPropertyFrequency        = accessPointInterface + ".Frequency"
+	accessPointPropertyPairwiseCiphers  = accessPointInterface + ".PairwiseCiphers"
+	accessPointPropertyGroupCipher      = accessPointInterface + ".GroupCipher"
+	accessPointMethodStart              = accessPointInterface + ".Start"
+	accessPointMethodStop               = accessPointInterface + ".Stop"
+	accessPointMethodStartProfile       = accessPointInterface + ".StartProfile"
+	accessPointMethodScan               = accessPointInterface + ".Scan"
 	accessPointMethodGetOrderedNetworks = accessPointInterface + ".GetOrderedNetworks"
 )
 
@@ -38,25 +38,25 @@ type AccessPointer interface {
 	Stop() error
 	StartProfile(ssid string) error
 	Scan() error
- 	GetOrderedNetworks() ([]*AccessPointOrderedNetwork, error)
- 	GetScanning() (bool, error)
+	GetOrderedNetworks() ([]*AccessPointOrderedNetwork, error)
+	GetScanning() (bool, error)
 }
 
 type AccessPointOrderedNetwork struct {
-	Name string
+	Name           string
 	SignalStrength int16
-	Security string
+	Security       string
 }
 
 type AccessPoint struct {
-	conn *dbus.Conn
-	obj dbus.BusObject
-	path dbus.ObjectPath
-	started bool
-	name *string
-	frequency *uint32
+	conn            *dbus.Conn
+	obj             dbus.BusObject
+	path            dbus.ObjectPath
+	started         bool
+	name            *string
+	frequency       *uint32
 	pairwiseCiphers *[]string
-	groupCipher *string
+	groupCipher     *string
 }
 
 func NewAccessPoint(conn *dbus.Conn, path dbus.ObjectPath) (*AccessPoint, error) {
@@ -68,7 +68,7 @@ func NewAccessPoint(conn *dbus.Conn, path dbus.ObjectPath) (*AccessPoint, error)
 	obj := conn.Object(IwdService, path)
 	ap := &AccessPoint{
 		conn: conn,
-		obj: obj,
+		obj:  obj,
 		path: path,
 	}
 	if variant, err := ap.obj.GetProperty(accessPointPropertyStarted); err != nil {
@@ -80,10 +80,10 @@ func NewAccessPoint(conn *dbus.Conn, path dbus.ObjectPath) (*AccessPoint, error)
 		if err2 := variant.Store(&ap.started); err2 != nil {
 			apLogger.WithFields(log.Fields{
 				"err": err2,
-			}).Error("Failed to store proptery 'started'")
+			}).Error("failed to store property 'started'")
 			return nil, err2
 		}
-		apLogger.Debugf("Started = %b", ap.started)
+		apLogger.Debugf("Started = %t", ap.started)
 	}
 	if variant, err := ap.obj.GetProperty(accessPointPropertyName); err != nil {
 		apLogger.WithFields(log.Fields{
@@ -94,7 +94,7 @@ func NewAccessPoint(conn *dbus.Conn, path dbus.ObjectPath) (*AccessPoint, error)
 		if err2 := variant.Store(&ap.name); err2 != nil {
 			apLogger.WithFields(log.Fields{
 				"err": err2,
-			}).Errorf("Failed to store property 'name'")
+			}).Errorf("failed to store property 'name'")
 			return nil, err2
 		}
 		apLogger.Debugf("Name = %s", *ap.name)
@@ -108,7 +108,7 @@ func NewAccessPoint(conn *dbus.Conn, path dbus.ObjectPath) (*AccessPoint, error)
 		if err2 := variant.Store(&ap.frequency); err2 != nil {
 			apLogger.WithFields(log.Fields{
 				"err": err,
-			}).Error("Failed to store property 'frequency'")
+			}).Error("failed to store property 'frequency'")
 			return nil, err2
 		}
 		apLogger.Debugf("Frequency = %d", *ap.frequency)
@@ -122,7 +122,7 @@ func NewAccessPoint(conn *dbus.Conn, path dbus.ObjectPath) (*AccessPoint, error)
 		if err2 := variant.Store(&ap.pairwiseCiphers); err2 != nil {
 			apLogger.WithFields(log.Fields{
 				"err": err,
-			}).Error("Failed to store property 'pairwise cipher'")
+			}).Error("failed to store property 'pairwise cipher'")
 			return nil, err2
 		}
 		apLogger.Debugf("Pairwise Ciphers = %v", *ap.pairwiseCiphers)
@@ -198,7 +198,7 @@ func (ap *AccessPoint) String() string {
 		groupCipher = *ap.groupCipher
 	}
 	scanning, _ := ap.GetScanning()
-	return fmt.Sprintf("{Path: %s, Interface: %s, Name: %s, Started: %t, Frequency: %d, PairwiseCiphers: %v, GroupCipher: %s, Scanning: %t}", ap.path, ap.GetInterface(), name, ap.started, frequency, pairwiseCiphers, groupCipher, scanning)
+	return fmt.Sprintf("{Path: %s, Interface: %s, Name: %s, Started: %t, Frequency: %s, PairwiseCiphers: %v, GroupCipher: %s, Scanning: %t}", ap.path, ap.GetInterface(), name, ap.started, frequency, pairwiseCiphers, groupCipher, scanning)
 }
 
 func (ap *AccessPoint) Start(ssid, psk string) error {
@@ -248,7 +248,7 @@ func (ap *AccessPoint) Scan() error {
 	return nil
 }
 
-func (ap * AccessPoint) GetOrderedNetworks() ([]*AccessPointOrderedNetwork, error) {
+func (ap *AccessPoint) GetOrderedNetworks() ([]*AccessPointOrderedNetwork, error) {
 	var objects [][]dbus.Variant
 	if err := ap.obj.Call(accessPointMethodGetOrderedNetworks, 0).Store(&objects); err != nil {
 		apLogger.WithFields(log.Fields{
@@ -263,9 +263,9 @@ func (ap * AccessPoint) GetOrderedNetworks() ([]*AccessPointOrderedNetwork, erro
 		signalStrength := obj[1].Value().(int16)
 		security := obj[2].Value().(string)
 		orderedNetworks = append(orderedNetworks, &AccessPointOrderedNetwork{
-			Name: name,
+			Name:           name,
 			SignalStrength: signalStrength,
-			Security: security,
+			Security:       security,
 		})
 		apLogger.Debugf("Ordered Network %d = %v", i, *orderedNetworks[i])
 	}
@@ -288,6 +288,6 @@ func (ap *AccessPoint) GetScanning() (bool, error) {
 			return false, err2
 		}
 	}
-	apLogger.Debugf("Scanning = %b", scanning)
+	apLogger.Debugf("Scanning = %t", scanning)
 	return scanning, nil
 }

@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	adapterInterface = "net.connman.iwd.Adapter"
-	adapterPropertyPowered = adapterInterface + ".Powered"
-	adapterPropertyName = adapterInterface + ".Name"
-	adapterPropertyModel = adapterInterface + ".Model"
-	adapterPropertyVendor = adapterInterface + ".Vendor"
+	adapterInterface              = "net.connman.iwd.Adapter"
+	adapterPropertyPowered        = adapterInterface + ".Powered"
+	adapterPropertyName           = adapterInterface + ".Name"
+	adapterPropertyModel          = adapterInterface + ".Model"
+	adapterPropertyVendor         = adapterInterface + ".Vendor"
 	adapterPropertySupportedModes = adapterInterface + ".SupportedModes"
 )
 
@@ -21,26 +21,25 @@ var (
 )
 
 type Adapterer interface {
- 	GetPath() dbus.ObjectPath
- 	GetInterface() string
- 	GetName() string
- 	GetModel() *string
- 	GetVendor() *string
- 	GetSupportedModes() []string
- 	GetPowered() bool
- 	SetPowered(powered bool) error
+	GetPath() dbus.ObjectPath
+	GetInterface() string
+	GetName() string
+	GetModel() *string
+	GetVendor() *string
+	GetSupportedModes() []string
+	GetPowered() bool
+	SetPowered(powered bool) error
 }
 
-
 type Adapter struct {
-	conn *dbus.Conn
-	path dbus.ObjectPath
-	obj dbus.BusObject
-	name string
-	model *string
-	vendor *string
+	conn           *dbus.Conn
+	path           dbus.ObjectPath
+	obj            dbus.BusObject
+	name           string
+	model          *string
+	vendor         *string
 	supportedModes []string
-	powered bool
+	powered        bool
 }
 
 func NewAdapter(conn *dbus.Conn, path dbus.ObjectPath) (*Adapter, error) {
@@ -53,7 +52,7 @@ func NewAdapter(conn *dbus.Conn, path dbus.ObjectPath) (*Adapter, error) {
 	a := &Adapter{
 		conn: conn,
 		path: path,
-		obj: obj,
+		obj:  obj,
 	}
 	if variant, err := a.obj.GetProperty(adapterPropertyName); err != nil {
 		adapterLogger.WithFields(log.Fields{
@@ -92,7 +91,7 @@ func NewAdapter(conn *dbus.Conn, path dbus.ObjectPath) (*Adapter, error) {
 		if err2 := variant.Store(&a.vendor); err2 != nil {
 			adapterLogger.WithFields(log.Fields{
 				"err": err2,
-			}).Error("Failed to store proptery 'vendor'")
+			}).Error("Failed to store property 'vendor'")
 			return nil, err2
 		}
 		adapterLogger.Debugf("Vendor = %s", *a.vendor)
@@ -123,7 +122,7 @@ func NewAdapter(conn *dbus.Conn, path dbus.ObjectPath) (*Adapter, error) {
 			}).Error("Failed to store property 'powered'")
 			return nil, err2
 		}
-		adapterLogger.Debugf("Powered = %b", a.powered)
+		adapterLogger.Debugf("Powered = %t", a.powered)
 	}
 	return a, nil
 }
@@ -179,7 +178,7 @@ func (a *Adapter) SetPowered(powered bool) error {
 		}).Error("Failed to set property 'powered'")
 		return err
 	}
-	adapterLogger.Debugf("SetPowered %b", powered)
+	adapterLogger.Debugf("SetPowered %t", powered)
 	a.powered = powered
 	return nil
 }

@@ -11,15 +11,15 @@ import (
 )
 
 type Spider struct {
-	AccessPoints []*spider.AccessPoint
-	Adapters []*spider.Adapter
-	AdHocs []*spider.AdHoc
-	AgentManager *spider.AgentManager
+	AccessPoints     []*spider.AccessPoint
+	Adapters         []*spider.Adapter
+	AdHocs           []*spider.AdHoc
+	AgentManager     *spider.AgentManager
 	BasicServiceSets []*spider.BasicServiceSet
-	Devices []*spider.Device
-	KnownNetworks []*spider.KnownNetwork
-	Networks []*spider.Network
-	Stations []*spider.Station
+	Devices          []*spider.Device
+	KnownNetworks    []*spider.KnownNetwork
+	Networks         []*spider.Network
+	Stations         []*spider.Station
 }
 
 func GetAdapters(conn *dbus.Conn) ([]*spider.Adapter, error) {
@@ -30,7 +30,7 @@ func GetAdapters(conn *dbus.Conn) ([]*spider.Adapter, error) {
 		log.Errorf("Failed to get managed objects: %s", err)
 		return nil, fmt.Errorf("failed to get managed objects: %s", err)
 	}
-for k, v := range objects {
+	for k, v := range objects {
 		for resource := range v {
 			switch resource {
 			case "net.connman.iwd.Adapter":
@@ -143,7 +143,7 @@ func ScanForNetworks(conn *dbus.Conn, scanTime uint8) ([]*spider.StationOrderedN
 			}
 		}
 	}
-	ons := make([]*spider.StationOrderedNetwork, 0)
+	orderedNetworks := make([]*spider.StationOrderedNetwork, 0)
 	if len(stations) == 0 {
 		log.Error("No stations found")
 		return nil, fmt.Errorf("no stations found; Adapters must be powered on and Devices must be powered on in 'station' mode")
@@ -158,18 +158,18 @@ func ScanForNetworks(conn *dbus.Conn, scanTime uint8) ([]*spider.StationOrderedN
 				log.Errorf("failed to get ordered networks for Station %s: %s", st.GetPath(), err2)
 				return nil, fmt.Errorf("failed to get ordered networks for Station %s: %s", st.GetPath(), err2)
 			} else {
-				ons = append(ons, stOns...)
+				orderedNetworks = append(orderedNetworks, stOns...)
 			}
 		}
 	}
-	sort.Slice(ons, func(i, j int) bool {
-		if ons[i].SignalStrength != ons[j].SignalStrength {
-			return ons[i].SignalStrength < ons[j].SignalStrength
+	sort.Slice(orderedNetworks, func(i, j int) bool {
+		if orderedNetworks[i].SignalStrength != orderedNetworks[j].SignalStrength {
+			return orderedNetworks[i].SignalStrength < orderedNetworks[j].SignalStrength
 		}
-		return ons[i].Network.GetName() < ons[j].Network.GetName()
+		return orderedNetworks[i].Network.GetName() < orderedNetworks[j].Network.GetName()
 	})
-	log.Debugf("OrderedNetworks: %v", ons)
-	return ons, nil
+	log.Debugf("OrderedNetworks: %v", orderedNetworks)
+	return orderedNetworks, nil
 }
 
 func GetKnownNetworks(conn *dbus.Conn) ([]*spider.KnownNetwork, error) {

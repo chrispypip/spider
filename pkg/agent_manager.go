@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	agentManagerInterface = "net.connman.iwd.AgentManager"
-	agentManagerMethodRegisterAgent = agentManagerInterface + ".RegisterAgent"
-	agentManagerMethodUnregisterAgent = agentManagerInterface + ".UnregisterAgent"
-	agentManagerMethodRegisterNetworkConfigurationAgent = agentManagerInterface + ".RegisterNetworkConfigurationAgent"
+	agentManagerInterface                                 = "net.connman.iwd.AgentManager"
+	agentManagerMethodRegisterAgent                       = agentManagerInterface + ".RegisterAgent"
+	agentManagerMethodUnregisterAgent                     = agentManagerInterface + ".UnregisterAgent"
+	agentManagerMethodRegisterNetworkConfigurationAgent   = agentManagerInterface + ".RegisterNetworkConfigurationAgent"
 	agentManagerMethodUnregisterNetworkConfigurationAgent = agentManagerInterface + ".UnregisterNetworkConfigurationAgent"
 )
 
@@ -30,7 +30,7 @@ type AgentManagerer interface {
 
 type AgentManager struct {
 	conn *dbus.Conn
-	obj dbus.BusObject
+	obj  dbus.BusObject
 	path dbus.ObjectPath
 }
 
@@ -43,7 +43,7 @@ func NewAgentManager(conn *dbus.Conn, path dbus.ObjectPath) *AgentManager {
 	obj := conn.Object(IwdService, path)
 	am := &AgentManager{
 		conn: conn,
-		obj: obj,
+		obj:  obj,
 		path: path,
 	}
 	return am
@@ -66,10 +66,10 @@ func (am *AgentManager) RegisterAgent(client AgentClient) error {
 	if err := am.obj.Call(agentManagerMethodRegisterAgent, 0, clientPath).Err; err != nil {
 		amLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to register Agent %s", clientPath)
+		}).Errorf("failed to register Agent %s", clientPath)
 		return err
 	}
-	amLogger.Debugf("Reigstered Agent %s", clientPath)
+	amLogger.Debugf("registered Agent %s", clientPath)
 	return nil
 }
 
@@ -78,7 +78,7 @@ func (am *AgentManager) UnregisterAgent(client AgentClient) error {
 	if err := am.obj.Call(agentManagerMethodUnregisterAgent, 0, clientPath).Err; err != nil {
 		amLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to unregister Agent %s", clientPath)
+		}).Errorf("failed to unregister Agent %s", clientPath)
 		return err
 	}
 	amLogger.Debugf("Unregistered Agent %s", clientPath)
@@ -90,7 +90,7 @@ func (am *AgentManager) RegisterNetworkConfigurationAgent(client NetworkConfigur
 	if err := am.obj.Call(agentManagerMethodRegisterNetworkConfigurationAgent, 0, clientPath).Err; err != nil {
 		amLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to register NetworkConfigurationAgent %s", clientPath)
+		}).Errorf("failed to register NetworkConfigurationAgent %s", clientPath)
 		return err
 	}
 	amLogger.Debugf("Registered NetworkConfigurationAgent %s", clientPath)
@@ -102,9 +102,9 @@ func (am *AgentManager) UnregisterNetworkConfigurationAgent(client NetworkConfig
 	if err := am.obj.Call(agentManagerMethodUnregisterNetworkConfigurationAgent, 0, clientPath).Err; err != nil {
 		amLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to unregister NetworkConfigurationAgent %s", clientPath)
+		}).Errorf("failed to unregister NetworkConfigurationAgent %s", clientPath)
 		return err
 	}
-	amLogger.Debugf("Unregistred NetworkConfigurationAgent %s", clientPath)
+	amLogger.Debugf("unregistered NetworkConfigurationAgent %s", clientPath)
 	return nil
 }

@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	networkInterface = "net.connman.iwd.Network"
-	networkPropertyName = networkInterface + ".Name"
-	networkPropertyConnected = networkInterface + ".Connected"
-	networkPropertyDevice = networkInterface + ".Device"
-	networkPropertyType = networkInterface + ".Type"
-	networkPropertyKnownNetwork = networkInterface + ".KnownNetwork"
+	networkInterface                  = "net.connman.iwd.Network"
+	networkPropertyName               = networkInterface + ".Name"
+	networkPropertyConnected          = networkInterface + ".Connected"
+	networkPropertyDevice             = networkInterface + ".Device"
+	networkPropertyType               = networkInterface + ".Type"
+	networkPropertyKnownNetwork       = networkInterface + ".KnownNetwork"
 	networkPropertyExtendedServiceSet = networkInterface + ".ExtendedServiceSet"
-	networkMethodConnect = networkInterface + ".Connect"
+	networkMethodConnect              = networkInterface + ".Connect"
 )
 
 var (
@@ -35,14 +35,14 @@ type Networker interface {
 }
 
 type Network struct {
-	conn *dbus.Conn
-	obj dbus.BusObject
-	path dbus.ObjectPath
-	name string
-	connected bool
-	device Device
-	netType string
-	knownNetwork *KnownNetwork
+	conn               *dbus.Conn
+	obj                dbus.BusObject
+	path               dbus.ObjectPath
+	name               string
+	connected          bool
+	device             Device
+	netType            string
+	knownNetwork       *KnownNetwork
 	extendedServiceSet *[]BasicServiceSet
 }
 
@@ -55,7 +55,7 @@ func NewNetwork(conn *dbus.Conn, path dbus.ObjectPath) (*Network, error) {
 	obj := conn.Object(IwdService, path)
 	n := &Network{
 		conn: conn,
-		obj: obj,
+		obj:  obj,
 		path: path,
 	}
 	if variant, err := n.obj.GetProperty(networkPropertyName); err != nil {
@@ -84,7 +84,7 @@ func NewNetwork(conn *dbus.Conn, path dbus.ObjectPath) (*Network, error) {
 			}).Error("Failed to store property 'connected'")
 			return nil, err2
 		}
-		networkLogger.Debugf("Connected = %b", n.connected)
+		networkLogger.Debugf("Connected = %t", n.connected)
 	}
 	if variant, err := n.obj.GetProperty(networkPropertyDevice); err != nil {
 		networkLogger.WithFields(log.Fields{
@@ -160,7 +160,7 @@ func NewNetwork(conn *dbus.Conn, path dbus.ObjectPath) (*Network, error) {
 			}).Error("Failed to store property 'extended service set'")
 			return nil, err2
 		}
-		for i, path := range(paths) {
+		for i, path := range paths {
 			if bss, err2 := NewBasicServiceSet(n.conn, path); err2 != nil {
 				networkLogger.WithFields(log.Fields{
 					"err": err2,

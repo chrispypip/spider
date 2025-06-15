@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	adhocInterface = "net.connman.iwd.AdHoc"
+	adhocInterface              = "net.connman.iwd.AdHoc"
 	adhocPropertyConnectedPeers = adhocInterface + ".ConnectedPeers"
-	adhocPropertyStarted = adhocInterface + ".Started"
-	adhocMethodStart = adhocInterface + ".Start"
-	adhocMethodStartOpen = adhocInterface + ".StartOpen"
-	adhocMethodStop = adhocInterface + ".Stop"
+	adhocPropertyStarted        = adhocInterface + ".Started"
+	adhocMethodStart            = adhocInterface + ".Start"
+	adhocMethodStartOpen        = adhocInterface + ".StartOpen"
+	adhocMethodStop             = adhocInterface + ".Stop"
 )
 
 var (
@@ -31,9 +31,9 @@ type AdHocer interface {
 }
 
 type AdHoc struct {
-	conn *dbus.Conn
-	obj dbus.BusObject
-	path dbus.ObjectPath
+	conn    *dbus.Conn
+	obj     dbus.BusObject
+	path    dbus.ObjectPath
 	started bool
 }
 
@@ -46,7 +46,7 @@ func NewAdHoc(conn *dbus.Conn, path dbus.ObjectPath) (*AdHoc, error) {
 	obj := conn.Object(IwdService, path)
 	ah := &AdHoc{
 		conn: conn,
-		obj: obj,
+		obj:  obj,
 		path: path,
 	}
 	if variant, err := ah.obj.GetProperty(adhocPropertyStarted); err != nil {
@@ -61,7 +61,7 @@ func NewAdHoc(conn *dbus.Conn, path dbus.ObjectPath) (*AdHoc, error) {
 			}).Error("Failed to store property 'started'")
 			return nil, err2
 		}
-		adhocLogger.Debugf("Started = %b", ah.started)
+		adhocLogger.Debugf("Started = %t", ah.started)
 	}
 	return ah, nil
 }

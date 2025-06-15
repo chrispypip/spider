@@ -8,8 +8,8 @@ import (
 	"os"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/sirupsen/logrus/hooks/writer"
 	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
+	"github.com/sirupsen/logrus/hooks/writer"
 )
 
 type LogLevel uint8
@@ -119,14 +119,14 @@ func SetLogFormatter(logFormatter LogFormatter, enableColors, enableTimestamp, e
 		return nil
 	case LogTextFormatter:
 		log.SetFormatter(&log.TextFormatter{
-			DisableColors: !enableColors,
+			DisableColors:    !enableColors,
 			DisableTimestamp: !enableTimestamp,
 		})
 		return nil
 	case LogJSONFormatter:
 		log.SetFormatter(&log.JSONFormatter{
 			DisableTimestamp: !enableTimestamp,
-			PrettyPrint: enablePrettyPrint,
+			PrettyPrint:      enablePrettyPrint,
 		})
 		return nil
 	default:

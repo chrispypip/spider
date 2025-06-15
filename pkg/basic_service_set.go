@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	basicServiceSetInterface = "net.connman.iwd.BasicServiceSet"
+	basicServiceSetInterface       = "net.connman.iwd.BasicServiceSet"
 	basicServiceSetPropertyAddress = basicServiceSetInterface + ".Address"
 )
 
@@ -23,9 +23,9 @@ type BasicServiceSetter interface {
 }
 
 type BasicServiceSet struct {
-	conn *dbus.Conn
-	obj dbus.BusObject
-	path dbus.ObjectPath
+	conn    *dbus.Conn
+	obj     dbus.BusObject
+	path    dbus.ObjectPath
 	address string
 }
 
@@ -38,7 +38,7 @@ func NewBasicServiceSet(conn *dbus.Conn, path dbus.ObjectPath) (*BasicServiceSet
 	obj := conn.Object(IwdService, path)
 	bss := &BasicServiceSet{
 		conn: conn,
-		obj: obj,
+		obj:  obj,
 		path: path,
 	}
 	if variant, err := bss.obj.GetProperty(basicServiceSetPropertyAddress); err != nil {
@@ -71,5 +71,5 @@ func (bss *BasicServiceSet) GetAddress() string {
 }
 
 func (bss *BasicServiceSet) String() string {
-	return fmt.Sprintf("{Path: %s, Interface: %s, Address: %t}", bss.path, bss.GetInterface(), bss.address)
+	return fmt.Sprintf("{Path: %s, Interface: %s, Address: %s}", bss.path, bss.GetInterface(), bss.address)
 }

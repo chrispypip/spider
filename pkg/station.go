@@ -8,17 +8,17 @@ import (
 )
 
 const (
-	stationInterface = "net.connman.iwd.Station"
-	stationPropertyState = stationInterface + ".State"
-	stationPropertyConnectedNetwork = stationInterface + ".ConnectedNetwork"
-	stationPropertyScanning = stationInterface + ".Scanning"
-	stationPropertyConnectedAccessPoint = stationInterface + ".ConnectedAccessPoint"
-	stationMethodScan = stationInterface + ".Scan"
-	stationMethodDisconnect = stationInterface + ".Disconnect"
-	stationMethodGetOrderedNetworks = stationInterface + ".GetOrderedNetworks"
-	stationMethodGetHiddenAccessPoints = stationInterface + ".GetHiddenAccessPoints"
-	stationMethodConnectHiddenNetwork = stationInterface + ".ConnectHiddenNetwork"
-	stationMethodRegisterSignalLevelAgent = stationInterface + ".RegisterSignalLevelAgent"
+	stationInterface                        = "net.connman.iwd.Station"
+	stationPropertyState                    = stationInterface + ".State"
+	stationPropertyConnectedNetwork         = stationInterface + ".ConnectedNetwork"
+	stationPropertyScanning                 = stationInterface + ".Scanning"
+	stationPropertyConnectedAccessPoint     = stationInterface + ".ConnectedAccessPoint"
+	stationMethodScan                       = stationInterface + ".Scan"
+	stationMethodDisconnect                 = stationInterface + ".Disconnect"
+	stationMethodGetOrderedNetworks         = stationInterface + ".GetOrderedNetworks"
+	stationMethodGetHiddenAccessPoints      = stationInterface + ".GetHiddenAccessPoints"
+	stationMethodConnectHiddenNetwork       = stationInterface + ".ConnectHiddenNetwork"
+	stationMethodRegisterSignalLevelAgent   = stationInterface + ".RegisterSignalLevelAgent"
 	stationMethodUnregisterSignalLevelAgent = stationInterface + ".UnregisterSignalLevelAgent"
 )
 
@@ -35,7 +35,7 @@ type Stationer interface {
 	GetConnectedAccessPoint() (*BasicServiceSet, error)
 	Scan() error
 	Disconnect() error
- 	GetOrderedNetworks() ([]StationOrderedNetwork, error)
+	GetOrderedNetworks() ([]StationOrderedNetwork, error)
 	GetHiddenAccessPoints() ([]HiddenAccessPoint, error)
 	ConnectHiddenNetwork(ssid string) error
 	RegisterSignalLevelAgent(client SignalLevelAgentClient, levels []int16) error
@@ -43,7 +43,7 @@ type Stationer interface {
 }
 
 type StationOrderedNetwork struct {
-	Network *Network
+	Network        *Network
 	SignalStrength int16
 }
 
@@ -52,14 +52,14 @@ func (on *StationOrderedNetwork) String() string {
 }
 
 type HiddenAccessPoint struct {
-	Address string
+	Address        string
 	SignalStrength int16
-	Type string
+	Type           string
 }
 
 type Station struct {
 	conn *dbus.Conn
-	obj dbus.BusObject
+	obj  dbus.BusObject
 	path dbus.ObjectPath
 }
 
@@ -72,7 +72,7 @@ func NewStation(conn *dbus.Conn, path dbus.ObjectPath) (*Station, error) {
 	obj := conn.Object(IwdService, path)
 	s := &Station{
 		conn: conn,
-		obj: obj,
+		obj:  obj,
 		path: path,
 	}
 	return s, nil
@@ -146,7 +146,7 @@ func (s *Station) GetScanning() (bool, error) {
 			return false, err2
 		}
 	}
-	stationLogger.Debugf("Scanning = %b", scanning)
+	stationLogger.Debugf("Scanning = %t", scanning)
 	return scanning, nil
 }
 
@@ -167,7 +167,7 @@ func (s *Station) GetConnectedAccessPoint() (*BasicServiceSet, error) {
 		if bss, err2 := NewBasicServiceSet(s.conn, path); err2 != nil {
 			stationLogger.WithFields(log.Fields{
 				"err": err2,
-			}).Error("Failed to create new Basic Service Set from propert;y 'connected access point'")
+			}).Error("Failed to create new Basic Service Set from property 'connected access point'")
 			return nil, err2
 		} else {
 			stationLogger.Debugf("Created new Basic Service Set from property 'connected access point': %s", bss)
@@ -219,7 +219,6 @@ func (s *Station) Scan() error {
 		stationLogger.Info("Station is already scanning")
 		return nil
 	}
-	return nil
 }
 
 func (s *Station) Disconnect() error {
@@ -252,7 +251,7 @@ func (s *Station) GetOrderedNetworks() ([]*StationOrderedNetwork, error) {
 			return orderedNetworks, nil
 		} else {
 			orderedNetworks = append(orderedNetworks, &StationOrderedNetwork{
-				Network: network,
+				Network:        network,
 				SignalStrength: signalStrength,
 			})
 			stationLogger.Debugf("Created new Network from GetOrderedNetworks: %s", orderedNetworks[i])
@@ -275,7 +274,7 @@ func (s *Station) GetHiddenAccessPoints() ([]*HiddenAccessPoint, error) {
 		address := obj[0].Value().(string)
 		signalStrength := obj[1].Value().(int16)
 		accessPoints = append(accessPoints, &HiddenAccessPoint{
-			Address: address,
+			Address:        address,
 			SignalStrength: signalStrength,
 		})
 		stationLogger.Debugf("Created new Hidden Access point from GetHiddenAccessPoints: %v", *accessPoints[i])
@@ -287,7 +286,7 @@ func (s *Station) ConnectHiddenNetwork(ssid string) error {
 	if err := s.obj.Call(stationMethodConnectHiddenNetwork, 0, ssid).Err; err != nil {
 		stationLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to call ConnectHiddenNetwork for SSID %s", ssid)
+		}).Errorf("failed to call ConnectHiddenNetwork for SSID %s", ssid)
 		return err
 	}
 	stationLogger.Debugf("Connected to Hidden Network SSID %s", ssid)
@@ -299,7 +298,7 @@ func (s *Station) RegisterSignalLevelAgent(client SignalLevelAgentClient, levels
 	if err := s.obj.Call(stationMethodRegisterSignalLevelAgent, 0, clientPath, levels).Err; err != nil {
 		stationLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to register SignalLevelAgent %s with level(s) %v", clientPath, levels)
+		}).Errorf("failed to register SignalLevelAgent %s with level(s) %v", clientPath, levels)
 		return err
 	}
 	stationLogger.Debugf("Registered SignalLevelAgent %s with level(s) %v", clientPath, levels)
@@ -311,9 +310,9 @@ func (s *Station) UnregisterSignalLevelAgent(client SignalLevelAgentClient) erro
 	if err := s.obj.Call(stationMethodUnregisterSignalLevelAgent, 0, clientPath).Err; err != nil {
 		stationLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to unregister SignalLevelAgent %s", clientPath)
+		}).Errorf("failed to unregister SignalLevelAgent %s", clientPath)
 		return err
 	}
-	stationLogger.Debugf("Unregistred SignalLevelAgent %s", clientPath)
+	stationLogger.Debugf("unregistered SignalLevelAgent %s", clientPath)
 	return nil
 }

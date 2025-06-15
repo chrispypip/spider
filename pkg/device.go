@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	deviceInterface = "net.connman.iwd.Device"
-	devicePropertyName = deviceInterface + ".Name"
+	deviceInterface       = "net.connman.iwd.Device"
+	devicePropertyName    = deviceInterface + ".Name"
 	devicePropertyAddress = deviceInterface + ".Address"
 	devicePropertyPowered = deviceInterface + ".Powered"
 	devicePropertyAdapter = deviceInterface + ".Adapter"
-	devicePropertyMode = deviceInterface + ".Mode"
+	devicePropertyMode    = deviceInterface + ".Mode"
 )
 
 var (
@@ -29,20 +29,20 @@ type Devicer interface {
 	GetPowered() bool
 	GetAdapter() Adapter
 	GetMode() string
-	SetPowered(powered bool) error 
+	SetPowered(powered bool) error
 	SetMode(mode string) error
 	GetSupportedModes() []string
 }
 
 type Device struct {
-	conn *dbus.Conn
-	path dbus.ObjectPath
-	obj dbus.BusObject
-	name string
+	conn    *dbus.Conn
+	path    dbus.ObjectPath
+	obj     dbus.BusObject
+	name    string
 	address string
 	powered bool
 	adapter Adapter
-	mode string
+	mode    string
 }
 
 func NewDevice(conn *dbus.Conn, path dbus.ObjectPath) (*Device, error) {
@@ -55,7 +55,7 @@ func NewDevice(conn *dbus.Conn, path dbus.ObjectPath) (*Device, error) {
 	d := &Device{
 		conn: conn,
 		path: path,
-		obj: obj,
+		obj:  obj,
 	}
 	if variant, err := d.obj.GetProperty(devicePropertyName); err != nil {
 		deviceLogger.WithFields(log.Fields{
@@ -97,7 +97,7 @@ func NewDevice(conn *dbus.Conn, path dbus.ObjectPath) (*Device, error) {
 			}).Error("Failed to store property 'powered'")
 			return nil, err2
 		}
-		deviceLogger.Debugf("Powered = %b", d.powered)
+		deviceLogger.Debugf("Powered = %t", d.powered)
 	}
 	if variant, err := d.obj.GetProperty(devicePropertyAdapter); err != nil {
 		deviceLogger.WithFields(log.Fields{
@@ -176,10 +176,10 @@ func (d *Device) SetPowered(powered bool) error {
 	if err := obj.SetProperty(devicePropertyPowered, dbus.MakeVariant(powered)); err != nil {
 		deviceLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to set property 'powered' to %b", powered)
+		}).Errorf("failed to set property 'powered' to %t", powered)
 		return err
 	} else {
-		deviceLogger.Debugf("SetPowered %b", powered)
+		deviceLogger.Debugf("SetPowered %t", powered)
 		d.powered = powered
 		return nil
 	}
@@ -188,16 +188,16 @@ func (d *Device) SetPowered(powered bool) error {
 func (d *Device) SetMode(mode string) error {
 	supportedModes := d.GetSupportedModes()
 	if !slices.Contains(supportedModes, mode) {
-		err := fmt.Errorf("Invalid mode %s. Valid modes are %v", mode, supportedModes)
+		err := fmt.Errorf("invalid mode %s. Valid modes are %v", mode, supportedModes)
 		deviceLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Invalide mode %s; valide modes are %v", mode, supportedModes)
+		}).Errorf("invalid mode %s; valid modes are %v", mode, supportedModes)
 		return err
 	}
 	if err := d.obj.SetProperty(devicePropertyMode, dbus.MakeVariant(mode)); err != nil {
 		deviceLogger.WithFields(log.Fields{
 			"err": err,
-		}).Error("Failed to set property 'mode' to %s", mode)
+		}).Errorf("failed to set property 'mode' to %s", mode)
 		return err
 	} else {
 		deviceLogger.Debugf("SetMode %s", mode)

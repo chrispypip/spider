@@ -5,27 +5,26 @@ import (
 	"sort"
 	"time"
 
-	"github.com/chrispypip/spider/pkg"
 	"github.com/godbus/dbus/v5"
 	log "github.com/sirupsen/logrus"
 )
 
 type Spider struct {
-	AccessPoints     []*spider.AccessPoint
-	Adapters         []*spider.Adapter
-	AdHocs           []*spider.AdHoc
-	AgentManager     *spider.AgentManager
-	BasicServiceSets []*spider.BasicServiceSet
-	Devices          []*spider.Device
-	KnownNetworks    []*spider.KnownNetwork
-	Networks         []*spider.Network
-	Stations         []*spider.Station
+	AccessPoints     []*AccessPoint
+	Adapters         []*Adapter
+	AdHocs           []*AdHoc
+	AgentManager     *AgentManager
+	BasicServiceSets []*BasicServiceSet
+	Devices          []*Device
+	KnownNetworks    []*KnownNetwork
+	Networks         []*Network
+	Stations         []*Station
 }
 
-func GetAdapters(conn *dbus.Conn) ([]*spider.Adapter, error) {
-	adapters := make([]*spider.Adapter, 0)
+func GetAdapters(conn *dbus.Conn) ([]*Adapter, error) {
+	adapters := make([]*Adapter, 0)
 	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
-	objectManager := conn.Object(spider.IwdService, "/")
+	objectManager := conn.Object(IwdService, "/")
 	if err := objectManager.Call("org.freedesktop.DBus.ObjectManager.GetManagedObjects", 0).Store(&objects); err != nil {
 		log.Errorf("Failed to get managed objects: %s", err)
 		return nil, fmt.Errorf("failed to get managed objects: %s", err)
@@ -34,7 +33,7 @@ func GetAdapters(conn *dbus.Conn) ([]*spider.Adapter, error) {
 		for resource := range v {
 			switch resource {
 			case "net.connman.iwd.Adapter":
-				if adapter, err := spider.NewAdapter(conn, k); err != nil {
+				if adapter, err := NewAdapter(conn, k); err != nil {
 					log.Errorf("failed to create Adapter from %s: %s", k, err)
 					return nil, fmt.Errorf("failed to create Adapter from %s: %s", k, err)
 				} else {
@@ -47,9 +46,9 @@ func GetAdapters(conn *dbus.Conn) ([]*spider.Adapter, error) {
 	return adapters, nil
 }
 
-func GetAdapterByName(conn *dbus.Conn, name string) (*spider.Adapter, error) {
+func GetAdapterByName(conn *dbus.Conn, name string) (*Adapter, error) {
 	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
-	objectManager := conn.Object(spider.IwdService, "/")
+	objectManager := conn.Object(IwdService, "/")
 	if err := objectManager.Call("org.freedesktop.DBus.ObjectManager.GetManagedObjects", 0).Store(&objects); err != nil {
 		log.Errorf("Failed to get managed objects: %s", err)
 		return nil, fmt.Errorf("failed to get managed objects: %s", err)
@@ -58,7 +57,7 @@ func GetAdapterByName(conn *dbus.Conn, name string) (*spider.Adapter, error) {
 		for resource := range v {
 			switch resource {
 			case "net.connman.iwd.Adapter":
-				if adapter, err := spider.NewAdapter(conn, k); err != nil {
+				if adapter, err := NewAdapter(conn, k); err != nil {
 					log.Errorf("Failed to create Adapter from %s: %s", k, err)
 					return nil, fmt.Errorf("failed to create Adapter from %s: %s", k, err)
 				} else if adapter.GetName() == name {
@@ -72,10 +71,10 @@ func GetAdapterByName(conn *dbus.Conn, name string) (*spider.Adapter, error) {
 	return nil, fmt.Errorf("could not find Adapter with name %s", name)
 }
 
-func GetDevices(conn *dbus.Conn) ([]*spider.Device, error) {
-	devices := make([]*spider.Device, 0)
+func GetDevices(conn *dbus.Conn) ([]*Device, error) {
+	devices := make([]*Device, 0)
 	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
-	objectManager := conn.Object(spider.IwdService, "/")
+	objectManager := conn.Object(IwdService, "/")
 	if err := objectManager.Call("org.freedesktop.DBus.ObjectManager.GetManagedObjects", 0).Store(&objects); err != nil {
 		log.Errorf("Failed to get managed objects: %s", err)
 		return nil, fmt.Errorf("failed to get managed objects: %s", err)
@@ -84,7 +83,7 @@ func GetDevices(conn *dbus.Conn) ([]*spider.Device, error) {
 		for resource := range v {
 			switch resource {
 			case "net.connman.iwd.Device":
-				if device, err := spider.NewDevice(conn, k); err != nil {
+				if device, err := NewDevice(conn, k); err != nil {
 					log.Errorf("Failed to create Device from %s: %s", k, err)
 					return nil, fmt.Errorf("failed to create Device from %s: %s", k, err)
 				} else {
@@ -97,9 +96,9 @@ func GetDevices(conn *dbus.Conn) ([]*spider.Device, error) {
 	return devices, nil
 }
 
-func GetDeviceByName(conn *dbus.Conn, name string) (*spider.Device, error) {
+func GetDeviceByName(conn *dbus.Conn, name string) (*Device, error) {
 	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
-	objectManager := conn.Object(spider.IwdService, "/")
+	objectManager := conn.Object(IwdService, "/")
 	if err := objectManager.Call("org.freedesktop.DBus.ObjectManager.GetManagedObjects", 0).Store(&objects); err != nil {
 		log.Errorf("Failed to get managed objects: %s", err)
 		return nil, fmt.Errorf("failed to get managed objects: %s", err)
@@ -108,7 +107,7 @@ func GetDeviceByName(conn *dbus.Conn, name string) (*spider.Device, error) {
 		for resource := range v {
 			switch resource {
 			case "net.connman.iwd.Device":
-				if device, err := spider.NewDevice(conn, k); err != nil {
+				if device, err := NewDevice(conn, k); err != nil {
 					log.Errorf("Failed to create Device from %s: %s", k, err)
 					return nil, fmt.Errorf("failed to create Device from %s: %s", k, err)
 				} else if device.GetName() == name {
@@ -122,10 +121,10 @@ func GetDeviceByName(conn *dbus.Conn, name string) (*spider.Device, error) {
 	return nil, fmt.Errorf("could not find Device with name %s", name)
 }
 
-func ScanForNetworks(conn *dbus.Conn, scanTime uint8) ([]*spider.StationOrderedNetwork, error) {
-	stations := make([]*spider.Station, 0)
+func ScanForNetworks(conn *dbus.Conn, scanTime uint8) ([]*StationOrderedNetwork, error) {
+	stations := make([]*Station, 0)
 	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
-	objectManager := conn.Object(spider.IwdService, "/")
+	objectManager := conn.Object(IwdService, "/")
 	if err := objectManager.Call("org.freedesktop.DBus.ObjectManager.GetManagedObjects", 0).Store(&objects); err != nil {
 		log.Errorf("Failed to get managed objects: %s", err)
 		return nil, fmt.Errorf("failed to get managed objects: %s", err)
@@ -134,7 +133,7 @@ func ScanForNetworks(conn *dbus.Conn, scanTime uint8) ([]*spider.StationOrderedN
 		for resource := range v {
 			switch resource {
 			case "net.connman.iwd.Station":
-				if station, err := spider.NewStation(conn, k); err != nil {
+				if station, err := NewStation(conn, k); err != nil {
 					log.Errorf("Failed to create Station from %s: %s", k, err)
 					return nil, fmt.Errorf("failed to create Station from %s: %s", k, err)
 				} else {
@@ -143,7 +142,7 @@ func ScanForNetworks(conn *dbus.Conn, scanTime uint8) ([]*spider.StationOrderedN
 			}
 		}
 	}
-	orderedNetworks := make([]*spider.StationOrderedNetwork, 0)
+	orderedNetworks := make([]*StationOrderedNetwork, 0)
 	if len(stations) == 0 {
 		log.Error("No stations found")
 		return nil, fmt.Errorf("no stations found; Adapters must be powered on and Devices must be powered on in 'station' mode")
@@ -172,10 +171,10 @@ func ScanForNetworks(conn *dbus.Conn, scanTime uint8) ([]*spider.StationOrderedN
 	return orderedNetworks, nil
 }
 
-func GetKnownNetworks(conn *dbus.Conn) ([]*spider.KnownNetwork, error) {
-	knownNetworks := make([]*spider.KnownNetwork, 0)
+func GetKnownNetworks(conn *dbus.Conn) ([]*KnownNetwork, error) {
+	knownNetworks := make([]*KnownNetwork, 0)
 	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
-	objectManager := conn.Object(spider.IwdService, "/")
+	objectManager := conn.Object(IwdService, "/")
 	if err := objectManager.Call("org.freedesktop.DBus.ObjectManager.GetManagedObjects", 0).Store(&objects); err != nil {
 		log.Errorf("failed to get managed objects: %s", err)
 		return nil, fmt.Errorf("failed to get managed objects: %s", err)
@@ -184,7 +183,7 @@ func GetKnownNetworks(conn *dbus.Conn) ([]*spider.KnownNetwork, error) {
 		for resource := range v {
 			switch resource {
 			case "net.connman.iwd.KnownNetwork":
-				if knownNetwork, err := spider.NewKnownNetwork(conn, k); err != nil {
+				if knownNetwork, err := NewKnownNetwork(conn, k); err != nil {
 					log.Errorf("failed to create KnownNetwork from %s: %s", k, err)
 					return nil, fmt.Errorf("failed to create KnownNetwork from %s: %s", k, err)
 				} else {
@@ -197,9 +196,9 @@ func GetKnownNetworks(conn *dbus.Conn) ([]*spider.KnownNetwork, error) {
 	return knownNetworks, nil
 }
 
-func GetKnownNetworkByName(conn *dbus.Conn, name string) (*spider.KnownNetwork, error) {
+func GetKnownNetworkByName(conn *dbus.Conn, name string) (*KnownNetwork, error) {
 	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
-	objectManager := conn.Object(spider.IwdService, "/")
+	objectManager := conn.Object(IwdService, "/")
 	if err := objectManager.Call("org.freedesktop.DBus.ObjectManager.GetManagedObjects", 0).Store(&objects); err != nil {
 		log.Errorf("failed to get managed objects: %s", err)
 		return nil, fmt.Errorf("failed to get managed objects: %s", err)
@@ -208,7 +207,7 @@ func GetKnownNetworkByName(conn *dbus.Conn, name string) (*spider.KnownNetwork, 
 		for resource := range v {
 			switch resource {
 			case "net.connman.iwd.KnownNetwork":
-				if knownNetwork, err := spider.NewKnownNetwork(conn, k); err != nil {
+				if knownNetwork, err := NewKnownNetwork(conn, k); err != nil {
 					log.Errorf("failed to create KnownNetwork from %s: %s", k, err)
 					return nil, fmt.Errorf("failed to create KnownNetwork from %s: %s", k, err)
 				} else {

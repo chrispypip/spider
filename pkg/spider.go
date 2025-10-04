@@ -250,3 +250,35 @@ func GetAgentManager(conn *dbus.Conn) (*AgentManager, error) {
 	}
 	return nil, fmt.Errorf("could not find an AgentManager")
 }
+
+func GetNetworkByName(conn *dbus.Conn, name string) (*Network, error) {
+	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
+	objectManager := conn.Object(IwdService, "/")
+	if err := objectManager.Call("org.freedesktop.DBus.ObjectManager.GetManagedObjects", 0).Store(&objects); err != nil {
+		log.Errorf("failed to get managed objects: %s", err)
+		return nil, fmt.Errorf("failed to get managed objects: %s", err)
+	}
+	for k, v := range objects {
+		for resource := range v {
+			switch resource {
+			case "net.connman.iwd.Network":
+				if network, err := NewNetwork(conn, k); err != nil {
+					log.Errorf("failed to create Network from %s: %s", k, err)
+					return nil, fmt.Errorf("failed to create Network from %s: %s", k, err)
+				} else {
+					netName, err2 := network.GetName()
+					if err2 != nil {
+						log.Errorf("failed to get name of Network %s: %s", k, err2)
+						continue
+					}
+					if netName == name {
+						log.Debugf("found Network with name %s: %s", name, network)
+						return network, nil
+					}
+				}
+			}
+		}
+	}
+	log.Warnf("Could not find Network with name %s", name)
+	return nil, fmt.Errorf("could not find Network with name %s", name)
+}

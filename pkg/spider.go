@@ -122,6 +122,50 @@ func GetDeviceByName(conn *dbus.Conn, name string) (*Device, error) {
 	return nil, fmt.Errorf("could not find Device with name %s", name)
 }
 
+func GetStations(conn *dbus.Conn) ([]*Station, error) {
+	stations := make([]*Station, 0)
+	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant
+	objectManager := conn.Object(IwdService, "/")
+	if err := objectManager.Call("org.freedesktop.DBus.ObjectManager.GetManagedObjects", 0).Store(&objects); err != nil {
+		log.Errorf("Failed to get managed objects: %s", err)
+		return nil, fmt.Errorf("failed to get managed objects: %s", err)
+	}
+	for k, v := range objects {
+		for resource := range v {
+			switch resource {
+			case "net.connman.iwd.Station":
+				if station, err := NewStation(conn, k); err != nil {
+					log.Errorf("Failed to create Station from %s: %s", k, err)
+					return nil, fmt.Errorf("failed to create Station from %s: %s", k, err)
+				} else {
+					stations = append(stations, station)
+				}
+			}
+		}
+	}
+	log.Debugf("Stations: %v", stations)
+	return stations, nil
+}
+
+func GetStationByName(conn *dbus.Conn, name string) (*Station, error) {
+	device, err := GetDeviceByName(conn, name)
+	if err != nil {
+		log.Errorf("Failed to get device by name %s: %s", name, err)
+		return nil, fmt.Errorf("failed to get device with name %s: %s", name, err)
+	}
+	if device.GetMode() != "station" {
+		log.Errorf("Device %s is not in 'station' mode", name)
+		return nil, fmt.Errorf("device %s is not in 'station' mode", name)
+	}
+	path := device.GetPath()
+	station, err := NewStation(conn, path)
+	if err != nil {
+		log.Errorf("Failed to create new Station from %s: %s", path, err)
+		return nil, fmt.Errorf("failed to create new Station from %s: %s", path, err)
+	}
+	return station, nil
+}
+
 func ScanForNetworks(conn *dbus.Conn, scanTime uint8) ([]*StationOrderedNetwork, error) {
 	stations := make([]*Station, 0)
 	var objects map[dbus.ObjectPath]map[string]map[string]dbus.Variant

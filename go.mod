@@ -1,6 +1,6 @@
 module github.com/chrispypip/spider
 
-go 1.24.2
+go 1.22.12
 
 require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
